@@ -8,14 +8,14 @@ const mongoose = require('mongoose');
 
 
 
-//retourne la liste des plantes
+//retourne la liste des plantes du catalogue
 exports.listPlantsCatalogue = (req, res, next) => {
     Plante.find()
     .then(plantes =>{
-        res.status(201).json({message: 'Liste de plantes retournées', data: plantes})
-        console.log(plante);
+        console.log(plantes);
+        res.status(200).json({message: 'Liste de plantes retournées', data: plantes})
     })
-    .catch((err)=>{
+    .catch(err =>{
         res.status(422).json({message: 'Liste de plantes non trouvé', data: err});
         console.log(err);
     });
@@ -23,20 +23,36 @@ exports.listPlantsCatalogue = (req, res, next) => {
 
 //liste des plantes d'un potager donné
 exports.listPlantsPotager = (req, res, next) =>{
-    const email = req.session.user.email
-    console.log(email);
-    let listPlantes = [];
+    const email = req.body.email;
 
-    PlantePotager.find({email: email})
-        .populate('planteId')
-    .then(plantesPotager => {
-        console.log(plantesPotager);
-        res.status(200).json({message: "liste de plante du potager de "+email, data: plantesPotager});
-    })
-    .catch(err => {
-        console.log(err);
-        res.status(422).json({message: "erreur plante"});
-    });
+    if (email !== ''){
+        let listPlantes = [];
+    
+        PlantePotager.find({email: email})
+            .populate('planteId')
+        .then(plantesPotager => {
+            for (plantePotager of plantesPotager){
+                listPlantes.push({
+                    _id: plantePotager.planteId._id,
+                    nom_plante: plantePotager.planteId.nom_plante,
+                    type_plante: plantePotager.planteId.type_plante,
+                    etat: plantePotager.planteId.etat,
+                    description: plantePotager.planteId.description,
+                    update_date: plantePotager.planteId.updated_date,
+                    plantePotagerId: plantePotager._id
+                });
+            }
+            console.log(listPlantes);
+
+            res.status(200).json({message: "liste de plante du potager de "+email, data: listPlantes});
+        })
+        .catch(err => {
+            console.log(err);
+            res.status(422).json({message: "erreur plante"});
+        });
+    }else{
+        res.status(422).json({message: "user non connecté"});
+    }
 }
 
 
@@ -46,7 +62,7 @@ exports.getPlantCatalogue = (req, res, next) => {
 
     Plante.findById(plantId)
     .then(result => {
-        res.status(201).json({message: 'Plante trouvée !!!', data: result});
+        res.status(200).json({message: 'Plante trouvée !!!', data: result});
         console.log('Plante trouvée');
     })
     .catch(err => {
@@ -70,7 +86,7 @@ exports.addPlantCatalogue = (req, res, next) => {
 
     plante.save()
     .then(result =>{
-        res.status(201).json({message: 'Plante créé !!', data: plante});
+        res.status(200).json({message: 'Plante créé !!', data: plante});
         console.log('Plante créé !!');
     })
     .catch(err => {
@@ -82,11 +98,11 @@ exports.addPlantCatalogue = (req, res, next) => {
 
 //Supprime la plante au catalogue correspondant à l'id reçu
 exports.deletePlantCatalogue = (req, res, next) => {
-    const planteId = req.params.planteId  //'5d2cd7401a38db0a64c31ff4'
+    const planteId = req.params.planteId
 
     Plante.findByIdAndDelete(planteId)
     .then(result => {
-        res.status(201).json({message: 'Plante supprimée', data: result});
+        res.status(20).json({message: 'Plante supprimée', data: result});
         console.log('Plante supprimée: '+ planteId );
     })
     .catch(err => {
@@ -115,7 +131,7 @@ exports.updatedPlantCatalogue = (req, res, next) => {
         }
         plante.save()
         .then(result => {
-            res.status(201).json({message: 'Plante modifiée !!', data: result});
+            res.status(200).json({message: 'Plante modifiée !!', data: result});
             console.log('Plante modifiée !!');
         })
         .catch(err => {
@@ -129,24 +145,50 @@ exports.updatedPlantCatalogue = (req, res, next) => {
     })
 }
 
+//Ajoute une plante au potager
 exports.addPlantePotager = (req, res, next) => {
     const planteId = req.body.planteId;
-    const email = req.session.user.email;
+    const email = req.body.email;
 
-    plantePotager = new PlantePotager({
-        email: email ,
-        planteId: planteId
-    });
+    if (email !== ''){
+        plantePotager = new PlantePotager({
+            email: email ,
+            planteId: planteId
+        });
+    
+        plantePotager.save()
+        .then(result => {
+            console.log(result);
+            res.status(200).json({message: 'plante créée dans le potager de '+email, data: result});
+        })
+        .catch(err => {
+            console.log(err);
+            res.status(500).json({message: 'erreur', data: err});
+        })
+            
+    }else{
+        res.status(422).json({message: "user non connecté"});
+    }
+}
 
-    plantePotager.save()
-    .then(result => {
-        console.log(result);
-        res.status(200).json({message: 'plante créée dans le potager de '+email, data: result});
-    })
-    .catch(err => {
-        console.log(err);
-        res.status(500).json({message: 'erreur', data: err});
-    })
+//Supprime une plante au potager
+exports.deletePlantePotager = (req, res, next) => {
+    const plantePotagerId = req.body.plantePotagerId;
+    const email = req.body.email;
+
+    if (email !== ''){
+        PlantePotager.findByIdAndRemove(plantePotagerId)
+        .then(result => {
+            console.log(result);
+            res.status(200).json({message: 'plante $(plantePotagerId) supprimée du potager de '+email, data: result});
+        })
+        .catch(err => {
+            console.log(err);
+            res.status(500).json({message: 'erreur', data: err});
+        })
+    }else{
+        res.status(422).json({message: "user non connecté"});
+    }
 }
 
 

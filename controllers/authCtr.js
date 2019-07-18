@@ -5,7 +5,7 @@ exports.postLogin = (req, res, next) => {
     const password = req.body.pwdLogin;
     let userValid = false;
     let pwdValid = false;
-
+    console.log(req.body);
     listUser = [
         {   id_user: 1,
             email: 'pierre@qualia.fr',
@@ -44,7 +44,7 @@ exports.postLogin = (req, res, next) => {
                 email: email
             };
             return req.session.save((result) => {
-                res.status(201).json({message: 'Session enregistrée !!'});
+                res.status(201).json({message: 'Session enregistrée !!', data: email});
             });
         }else{
             res.status(422).json({message: 'Invalid password'});

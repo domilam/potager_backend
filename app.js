@@ -38,7 +38,7 @@ app.use(session({
 
 
 app.use((req, res, next) => {
-    res.locals.isAuthenticated = req.session.isAuthenticated,
+    res.locals.isAuthenticated = req.session.isAuthenticated
     next();
 });
 
